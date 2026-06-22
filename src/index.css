@@ -1,0 +1,43 @@
+@import "tailwindcss";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/dm-mono/400.css";
+
+@theme {
+  --color-bg: #0A0A0A;
+  --color-card: #111111;
+  --color-border: #1F1F1F;
+  --color-text: #F0EDE6;
+  --color-muted: #6B6B6B;
+  --color-accent: #E8A838;
+  --color-danger: #EF4444;
+  --font-sans: "Inter", sans-serif;
+  --font-mono: "DM Mono", monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+input, textarea, select, button {
+  font-family: inherit;
+}
+
+@keyframes amber-pulse {
+  0% { background-color: transparent; }
+  50% { background-color: var(--color-accent); }
+  100% { background-color: var(--color-accent); }
+}
+
+.checkbox-pulse {
+  animation: amber-pulse 150ms ease-out forwards;
+}
