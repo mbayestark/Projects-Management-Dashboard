@@ -7,16 +7,16 @@ export default function CalendarHeatmap({ weeks, dateSet }) {
   const dayLabels = ["M", "T", "W", "T", "F", "S", "S"];
 
   return (
-    <div className="flex gap-1">
-      <div className="flex flex-col gap-1 mr-1">
+    <div className="flex gap-1.5">
+      <div className="flex flex-col gap-1.5 mr-1">
         {dayLabels.map((d, i) => (
-          <div key={i} className="text-[10px] text-muted h-4 flex items-center">
+          <div key={i} className="text-[10px] text-muted w-4 h-4 flex items-center justify-center">
             {i % 2 === 0 ? d : ""}
           </div>
         ))}
       </div>
       {Array.from({ length: cols }, (_, col) => (
-        <div key={col} className="flex flex-col gap-1">
+        <div key={col} className="flex flex-col gap-1.5">
           {Array.from({ length: rows }, (_, row) => {
             const idx = col * 7 + row;
             const date = dates[idx];
@@ -27,7 +27,7 @@ export default function CalendarHeatmap({ weeks, dateSet }) {
             return (
               <div
                 key={row}
-                className={`w-4 h-4 ${
+                className={`w-4 h-4 rounded-sm ${
                   isFuture
                     ? "bg-transparent"
                     : active

@@ -29,7 +29,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row">
       <nav className="hidden lg:flex flex-col gap-1 w-48 shrink-0 border-r border-border p-4 pt-8 fixed h-screen">
-        <span className="text-accent font-mono text-sm mb-6 tracking-wider">DASHBOARD</span>
+        <span className="text-accent font-mono text-sm mb-6 tracking-wider">MBAYE</span>
         {NAV.map((n) => (
           <NavItem key={n.to} {...n} />
         ))}

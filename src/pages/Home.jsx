@@ -7,6 +7,7 @@ import InlineEdit from "../components/InlineEdit";
 
 const TIER_ORDER = ["critical", "high", "responsibility"];
 const TIER_LABELS = { critical: "CRITICAL", high: "HIGH LEVERAGE", responsibility: "RESPONSIBILITY" };
+const TIER_COLORS = { critical: "#E84038", high: "#E8A838", responsibility: "#7B61FF" };
 
 function TodayStrip() {
   const today = todayString();
@@ -57,30 +58,33 @@ function ProjectCard({ project }) {
 
   const nextMilestone = project.milestones?.find((m) => !m.done);
 
-  let deadlineColor = "text-muted";
-  if (days !== null) {
-    if (days < 0) deadlineColor = "text-danger";
-    else if (days <= 7) deadlineColor = "text-accent";
-  }
+  const tierColor = TIER_COLORS[project.tier] || "#2A2A2A";
 
   return (
     <div
-      className={`bg-card border border-border p-4 flex flex-col gap-3 ${
-        project.tier === "critical" ? "border-l-2 border-l-accent" : "border-l-2 border-l-[#4A4A4A]"
-      }`}
+      className="bg-card border border-border p-4 flex flex-col gap-3"
+      style={{ borderLeft: `3px solid ${tierColor}` }}
     >
       <div className="flex justify-between items-start">
         <Link to={`/project/${project._id}`} className="text-text font-semibold text-base hover:text-accent transition-colors no-underline">
           {project.name}
         </Link>
         {days !== null && (
-          <span className={`font-mono text-xs ${deadlineColor} whitespace-nowrap ml-2`}>
-            {days < 0 ? `${Math.abs(days)}d overdue` : `${days} days left`}
+          <span className="font-mono text-xs whitespace-nowrap ml-2 flex items-center gap-1.5">
+            {days < 0 && (
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#E84038] opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#E84038]" />
+              </span>
+            )}
+            <span style={{ color: days < 0 ? "#E84038" : days <= 7 ? "#E8A838" : "#6B6B6B" }}>
+              {days < 0 ? `${Math.abs(days)}d overdue` : `${days} days left`}
+            </span>
           </span>
         )}
       </div>
 
-      <SegmentedProgress done={progress.done} total={progress.total} />
+      <SegmentedProgress done={progress.done} total={progress.total} color={tierColor} />
 
       {nextMilestone && (
         <div>
@@ -161,8 +165,11 @@ export default function Home() {
       {TIER_ORDER.map((tier) =>
         grouped[tier] ? (
           <div key={tier} className="mb-8">
-            <div className="text-[11px] font-medium text-muted uppercase tracking-widest mb-3 border-b border-border pb-2">
-              {TIER_LABELS[tier]}
+            <div className="flex items-center gap-2 mb-3 border-b border-border pb-2">
+              <div className="w-[1px] h-4" style={{ backgroundColor: TIER_COLORS[tier] }} />
+              <span className="text-[11px] font-medium text-muted uppercase tracking-widest">
+                {TIER_LABELS[tier]}
+              </span>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {grouped[tier].map((p) => (

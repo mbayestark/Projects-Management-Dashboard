@@ -26,7 +26,7 @@ function WeightSection({ logs }) {
   return (
     <div className="mb-8">
       <h2 className="text-[11px] font-medium text-muted uppercase tracking-widest mb-4">Weight Tracker</h2>
-      {chartData.length > 1 && (
+      {chartData.length >= 1 && (
         <div className="h-48 mb-4">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
@@ -91,9 +91,9 @@ function GymSection({ logs }) {
   return (
     <div className="mb-8">
       <h2 className="text-[11px] font-medium text-muted uppercase tracking-widest mb-4">Gym Consistency</h2>
-      <div className="flex gap-1 mb-3 flex-wrap">
+      <div className="flex gap-1.5 mb-3 flex-wrap">
         {Array.from({ length: 10 }, (_, week) => (
-          <div key={week} className="flex flex-col gap-1">
+          <div key={week} className="flex flex-col gap-1.5">
             {Array.from({ length: 7 }, (_, day) => {
               const idx = week * 7 + day;
               const date = dates[idx];
