@@ -25,7 +25,7 @@ jobs:
       - run: npm ci
       - run: npm run build
         env:
-          VITE_CONVEX_URL: https://decisive-whale-691.convex.cloud
+          VITE_CONVEX_URL: https://judicious-trout-397.convex.cloud
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
