@@ -25,7 +25,7 @@ function DailyPulse() {
           Today — <span className="text-text">{pulse.tasksDoneToday} tasks done</span> · <span className="text-text">{timeStr} logged</span>
         </div>
         <div className="flex gap-4 items-center flex-wrap">
-          {Object.entries(pulse.projectBreakdown).map(([name, count]) => (
+          {pulse.projectBreakdown.map(({ name, count }) => (
             <span key={name} className="text-xs text-muted">{name} <span className="font-mono text-text">{count}</span></span>
           ))}
         </div>

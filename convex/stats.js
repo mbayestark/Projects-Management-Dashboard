@@ -28,11 +28,14 @@ export const getDailyPulse = query({
     const projectMap = {};
     for (const p of projects) projectMap[p._id] = p;
 
-    const projectBreakdown = {};
+    const counts = {};
     for (const t of tasksDoneToday) {
-      const name = projectMap[t.projectId]?.name || "Unknown";
-      projectBreakdown[name] = (projectBreakdown[name] || 0) + 1;
+      counts[t.projectId] = (counts[t.projectId] || 0) + 1;
     }
+    const projectBreakdown = Object.entries(counts).map(([id, count]) => ({
+      name: projectMap[id]?.name || "Unknown",
+      count,
+    }));
 
     const scheduledToday = tasks.filter((t) => t.scheduledDate === today && !t.done);
 
@@ -69,19 +72,25 @@ export const getWeeklyPerformance = query({
     const projectMap = {};
     for (const p of projects) projectMap[p._id] = p.name;
 
-    const byProject = {};
+    const taskCounts = {};
     for (const task of completedThisWeek) {
-      const name = projectMap[task.projectId] || "Unknown";
-      byProject[name] = (byProject[name] || 0) + 1;
+      taskCounts[task.projectId] = (taskCounts[task.projectId] || 0) + 1;
     }
 
     const timeLogs = await ctx.db.query("timeLogs").collect();
     const weekLogs = timeLogs.filter((l) => l.date >= ws);
-    const minutesByProject = {};
+    const minCounts = {};
     for (const log of weekLogs) {
-      const name = projectMap[log.projectId] || "Unknown";
-      minutesByProject[name] = (minutesByProject[name] || 0) + log.minutes;
+      minCounts[log.projectId] = (minCounts[log.projectId] || 0) + log.minutes;
     }
+
+    const allIds = new Set([...Object.keys(taskCounts), ...Object.keys(minCounts)]);
+    const byProject = [...allIds].map((id) => ({
+      name: projectMap[id] || "Unknown",
+      tasks: taskCounts[id] || 0,
+      minutes: minCounts[id] || 0,
+    }));
+    byProject.sort((a, b) => b.tasks - a.tasks);
 
     const contextBreakdown = { deep_work: 0, quick: 0, errand: 0 };
     for (const t of completedThisWeek) {
@@ -93,7 +102,6 @@ export const getWeeklyPerformance = query({
     return {
       totalCompleted: completedThisWeek.length,
       byProject,
-      minutesByProject,
       contextBreakdown,
     };
   },

@@ -12,8 +12,8 @@ export default function Performance() {
 
   if (!weekly || !history) return <div className="text-muted p-8">Loading...</div>;
 
-  const projectEntries = Object.entries(weekly.byProject).sort((a, b) => b[1] - a[1]);
-  const maxTasks = projectEntries.length > 0 ? Math.max(...projectEntries.map((e) => e[1])) : 1;
+  const projectEntries = weekly.byProject;
+  const maxTasks = projectEntries.length > 0 ? Math.max(...projectEntries.map((e) => e.tasks)) : 1;
 
   const gymLogs = (healthLogs || []).filter((l) => l.gymSession);
   const today = new Date();
@@ -48,18 +48,15 @@ export default function Performance() {
       {projectEntries.length > 0 && (
         <div className="mb-8">
           <div className="text-[11px] text-muted uppercase tracking-widest mb-3">By project</div>
-          {projectEntries.map(([name, count]) => {
-            const mins = weekly.minutesByProject[name] || 0;
-            return (
-              <div key={name} className="flex items-center gap-3 mb-2">
-                <span className="text-sm text-text w-40 truncate">{name}</span>
-                <div className="flex-1 bg-border h-3">
-                  <div className="bg-accent h-3" style={{ width: `${(count / maxTasks) * 100}%` }} />
-                </div>
-                <span className="font-mono text-xs text-muted w-32 text-right">{count} tasks{mins > 0 ? ` · ${fmtMin(mins)}` : ""}</span>
+          {projectEntries.map(({ name, tasks, minutes }) => (
+            <div key={name} className="flex items-center gap-3 mb-2">
+              <span className="text-sm text-text w-40 truncate">{name}</span>
+              <div className="flex-1 bg-border h-3">
+                <div className="bg-accent h-3" style={{ width: `${(tasks / maxTasks) * 100}%` }} />
               </div>
-            );
-          })}
+              <span className="font-mono text-xs text-muted w-32 text-right">{tasks} tasks{minutes > 0 ? ` · ${fmtMin(minutes)}` : ""}</span>
+            </div>
+          ))}
         </div>
       )}
 
