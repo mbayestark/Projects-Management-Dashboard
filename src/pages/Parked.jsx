@@ -17,13 +17,7 @@ export default function Parked() {
           {projects.map((p) => (
             <div key={p._id} className="flex justify-between items-center border border-border p-3">
               <span className="text-sm text-muted">{p.name}</span>
-              <button
-                type="button"
-                onClick={() => unpark({ id: p._id })}
-                className="text-xs text-accent hover:underline"
-              >
-                Unpark
-              </button>
+              <button type="button" onClick={() => unpark({ id: p._id })} className="text-xs text-accent hover:underline">Unpark</button>
             </div>
           ))}
         </div>

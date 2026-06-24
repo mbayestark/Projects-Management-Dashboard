@@ -1,14 +1,13 @@
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 
 export default function Performance() {
   const weekly = useQuery(api.stats.getWeeklyPerformance);
   const history = useQuery(api.stats.getWeeklyHistory);
-  const deenLogs = useQuery(api.deen.listLogs, {});
+  const streak = useQuery(api.deen.getStreak);
   const healthLogs = useQuery(api.health.listLogs, { limit: 30 });
 
   if (!weekly || !history) return <div className="text-muted p-8">Loading...</div>;
@@ -16,17 +15,9 @@ export default function Performance() {
   const projectEntries = Object.entries(weekly.byProject).sort((a, b) => b[1] - a[1]);
   const maxTasks = projectEntries.length > 0 ? Math.max(...projectEntries.map((e) => e[1])) : 1;
 
-  const quranDates = new Set((deenLogs || []).filter((l) => l.quranRead).map((l) => l.date));
+  const gymLogs = (healthLogs || []).filter((l) => l.gymSession);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  let quranStreak = 0;
-  const d = new Date(today);
-  while (quranDates.has(d.toISOString().split("T")[0])) {
-    quranStreak++;
-    d.setDate(d.getDate() - 1);
-  }
-
-  const gymLogs = (healthLogs || []).filter((l) => l.gymSession);
   const gymByWeek = [];
   for (let i = 3; i >= 0; i--) {
     const weekEnd = new Date(today.getTime() - i * 7 * 24 * 60 * 60 * 1000);
@@ -35,7 +26,13 @@ export default function Performance() {
       const ld = new Date(l.date + "T00:00:00");
       return ld >= weekStart && ld < weekEnd;
     }).length;
-    gymByWeek.push(count);
+    gymByWeek.push(`${count}/7`);
+  }
+
+  function fmtMin(m) {
+    const h = Math.floor(m / 60);
+    const min = m % 60;
+    return h > 0 ? `${h}h ${min}min` : `${min}min`;
   }
 
   return (
@@ -51,18 +48,26 @@ export default function Performance() {
       {projectEntries.length > 0 && (
         <div className="mb-8">
           <div className="text-[11px] text-muted uppercase tracking-widest mb-3">By project</div>
-          {projectEntries.map(([name, count]) => (
-            <div key={name} className="flex items-center gap-3 mb-2">
-              <span className="text-sm text-text w-40 truncate">{name}</span>
-              <div className="flex-1 bg-border h-3">
-                <div
-                  className="bg-accent h-3"
-                  style={{ width: `${(count / maxTasks) * 100}%` }}
-                />
+          {projectEntries.map(([name, count]) => {
+            const mins = weekly.minutesByProject[name] || 0;
+            return (
+              <div key={name} className="flex items-center gap-3 mb-2">
+                <span className="text-sm text-text w-40 truncate">{name}</span>
+                <div className="flex-1 bg-border h-3">
+                  <div className="bg-accent h-3" style={{ width: `${(count / maxTasks) * 100}%` }} />
+                </div>
+                <span className="font-mono text-xs text-muted w-32 text-right">{count} tasks{mins > 0 ? ` · ${fmtMin(mins)}` : ""}</span>
               </div>
-              <span className="font-mono text-xs text-muted w-16 text-right">{count} tasks</span>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+      )}
+
+      {weekly.contextBreakdown && (
+        <div className="mb-8 flex gap-6 text-sm font-mono">
+          <span className="text-muted">{weekly.contextBreakdown.deep_work} deep work</span>
+          <span className="text-muted">{weekly.contextBreakdown.quick} quick</span>
+          <span className="text-muted">{weekly.contextBreakdown.errand} errands</span>
         </div>
       )}
 
@@ -86,7 +91,7 @@ export default function Performance() {
         <div className="flex gap-8 font-mono text-sm flex-wrap">
           <div>
             <div className="text-muted text-xs mb-1">Quran streak</div>
-            <div className="text-accent text-xl">{quranStreak} days</div>
+            <div className="text-accent text-xl">{streak?.currentStreak ?? 0} days</div>
           </div>
           <div>
             <div className="text-muted text-xs mb-1">Gym (last 4 weeks)</div>

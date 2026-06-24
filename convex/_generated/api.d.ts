@@ -12,10 +12,16 @@ import type * as deen from "../deen.js";
 import type * as health from "../health.js";
 import type * as ideas from "../ideas.js";
 import type * as milestones from "../milestones.js";
+import type * as noteLogs from "../noteLogs.js";
+import type * as phases from "../phases.js";
 import type * as projects from "../projects.js";
 import type * as seed from "../seed.js";
+import type * as settings from "../settings.js";
 import type * as stats from "../stats.js";
 import type * as tasks from "../tasks.js";
+import type * as timeLogs from "../timeLogs.js";
+import type * as timer from "../timer.js";
+import type * as weeklyReviews from "../weeklyReviews.js";
 
 import type {
   ApiFromModules,
@@ -28,10 +34,16 @@ declare const fullApi: ApiFromModules<{
   health: typeof health;
   ideas: typeof ideas;
   milestones: typeof milestones;
+  noteLogs: typeof noteLogs;
+  phases: typeof phases;
   projects: typeof projects;
   seed: typeof seed;
+  settings: typeof settings;
   stats: typeof stats;
   tasks: typeof tasks;
+  timeLogs: typeof timeLogs;
+  timer: typeof timer;
+  weeklyReviews: typeof weeklyReviews;
 }>;
 
 /**

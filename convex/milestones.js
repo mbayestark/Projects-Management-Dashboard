@@ -9,16 +9,15 @@ export const listByProject = query({
       .withIndex("by_project", (q) => q.eq("projectId", projectId))
       .collect();
     milestones.sort((a, b) => a.order - b.order);
-    const result = [];
-    for (const milestone of milestones) {
+    for (const m of milestones) {
       const tasks = await ctx.db
         .query("tasks")
-        .withIndex("by_milestone", (q) => q.eq("milestoneId", milestone._id))
+        .withIndex("by_milestone", (q) => q.eq("milestoneId", m._id))
         .collect();
       tasks.sort((a, b) => a.order - b.order);
-      result.push({ ...milestone, tasks });
+      m.tasks = tasks;
     }
-    return result;
+    return milestones;
   },
 });
 
@@ -27,12 +26,10 @@ export const create = mutation({
     projectId: v.id("projects"),
     title: v.string(),
     order: v.number(),
+    phaseId: v.optional(v.id("phases")),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("milestones", {
-      ...args,
-      done: false,
-    });
+    return await ctx.db.insert("milestones", { ...args, done: false });
   },
 });
 
@@ -46,6 +43,15 @@ export const toggle = mutation({
       done: newDone,
       doneAt: newDone ? Date.now() : undefined,
     });
+    if (newDone && milestone.phaseId) {
+      const siblings = await ctx.db
+        .query("milestones")
+        .withIndex("by_phase", (q) => q.eq("phaseId", milestone.phaseId))
+        .collect();
+      if (siblings.every((m) => (m._id === id ? true : m.done))) {
+        await ctx.db.patch(milestone.phaseId, { done: true });
+      }
+    }
   },
 });
 
@@ -56,9 +62,7 @@ export const deleteMilestone = mutation({
       .query("tasks")
       .withIndex("by_milestone", (q) => q.eq("milestoneId", id))
       .collect();
-    for (const task of tasks) {
-      await ctx.db.delete(task._id);
-    }
+    for (const t of tasks) await ctx.db.delete(t._id);
     await ctx.db.delete(id);
   },
 });

@@ -9,6 +9,11 @@ export const list = query({
       .collect();
     const result = [];
     for (const project of projects) {
+      const phases = await ctx.db
+        .query("phases")
+        .withIndex("by_project", (q) => q.eq("projectId", project._id))
+        .collect();
+      phases.sort((a, b) => a.order - b.order);
       const milestones = await ctx.db
         .query("milestones")
         .withIndex("by_project", (q) => q.eq("projectId", project._id))
@@ -18,9 +23,12 @@ export const list = query({
         .query("tasks")
         .withIndex("by_project", (q) => q.eq("projectId", project._id))
         .collect();
+      const currentPhase = phases.find((p) => !p.done);
       result.push({
         ...project,
+        phases,
         milestones,
+        currentPhase: currentPhase || null,
         totalMilestones: milestones.length,
         doneMilestones: milestones.filter((m) => m.done).length,
         totalTasks: tasks.length,
@@ -43,7 +51,32 @@ export const listParked = query({
 export const get = query({
   args: { id: v.id("projects") },
   handler: async (ctx, { id }) => {
-    return await ctx.db.get(id);
+    const project = await ctx.db.get(id);
+    if (!project) return null;
+    const phases = await ctx.db
+      .query("phases")
+      .withIndex("by_project", (q) => q.eq("projectId", id))
+      .collect();
+    phases.sort((a, b) => a.order - b.order);
+    const milestones = await ctx.db
+      .query("milestones")
+      .withIndex("by_project", (q) => q.eq("projectId", id))
+      .collect();
+    milestones.sort((a, b) => a.order - b.order);
+    for (const m of milestones) {
+      const tasks = await ctx.db
+        .query("tasks")
+        .withIndex("by_milestone", (q) => q.eq("milestoneId", m._id))
+        .collect();
+      tasks.sort((a, b) => a.order - b.order);
+      m.tasks = tasks;
+    }
+    const noteLogs = await ctx.db
+      .query("noteLogs")
+      .withIndex("by_project", (q) => q.eq("projectId", id))
+      .collect();
+    noteLogs.sort((a, b) => a.date.localeCompare(b.date));
+    return { ...project, phases, milestones, noteLogs };
   },
 });
 
@@ -54,12 +87,10 @@ export const create = mutation({
     tier: v.string(),
     nextAction: v.string(),
     deadline: v.optional(v.string()),
+    originIdeaId: v.optional(v.id("ideas")),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("projects", {
-      ...args,
-      createdAt: Date.now(),
-    });
+    return await ctx.db.insert("projects", { ...args, createdAt: Date.now() });
   },
 });
 
@@ -67,13 +98,6 @@ export const updateNextAction = mutation({
   args: { id: v.id("projects"), nextAction: v.string() },
   handler: async (ctx, { id, nextAction }) => {
     await ctx.db.patch(id, { nextAction });
-  },
-});
-
-export const updateNotes = mutation({
-  args: { id: v.id("projects"), notes: v.string() },
-  handler: async (ctx, { id, notes }) => {
-    await ctx.db.patch(id, { notes });
   },
 });
 

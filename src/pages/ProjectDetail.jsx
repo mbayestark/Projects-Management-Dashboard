@@ -5,10 +5,64 @@ import { useState } from "react";
 import Checkbox from "../components/Checkbox";
 import InlineEdit from "../components/InlineEdit";
 
-function MilestoneSection({ milestone, projectId }) {
+const TIER_COLORS = { critical: "#E84038", high: "#E8A838", responsibility: "#7B61FF" };
+const CONTEXTS = [null, "deep_work", "quick", "errand"];
+const CONTEXT_LABELS = { deep_work: "deep", quick: "quick", errand: "errand" };
+
+function ContextBadge({ context, onCycle }) {
+  const colors = { deep_work: "#E8A838", quick: "#22C55E", errand: "#6B6B6B" };
+  if (!context) return (
+    <button type="button" onClick={onCycle} className="text-[10px] text-border hover:text-muted px-1">ctx</button>
+  );
+  return (
+    <button
+      type="button"
+      onClick={onCycle}
+      className="text-[10px] px-1.5 py-0.5 border"
+      style={{ color: colors[context], borderColor: colors[context] + "60" }}
+    >
+      {CONTEXT_LABELS[context]}
+    </button>
+  );
+}
+
+function TaskRow({ task, projectId }) {
   const toggleTask = useMutation(api.tasks.toggle);
-  const createTask = useMutation(api.tasks.create);
+  const updateContext = useMutation(api.tasks.updateContext);
+  const updateTitle = useMutation(api.tasks.updateTitle);
+  const startTimer = useMutation(api.timer.start);
+
+  function cycleContext() {
+    const idx = CONTEXTS.indexOf(task.context || null);
+    const next = CONTEXTS[(idx + 1) % CONTEXTS.length];
+    updateContext({ id: task._id, context: next });
+  }
+
+  return (
+    <div className="flex items-center gap-2 py-1.5 pl-6 group">
+      <Checkbox checked={task.done} onChange={() => toggleTask({ id: task._id })} />
+      <InlineEdit
+        value={task.title}
+        onSave={(val) => updateTitle({ id: task._id, title: val })}
+        className={`text-sm flex-1 ${task.done ? "line-through text-muted" : ""}`}
+      />
+      <ContextBadge context={task.context} onCycle={cycleContext} />
+      {!task.done && (
+        <button
+          type="button"
+          onClick={() => startTimer({ taskId: task._id, projectId })}
+          className="text-[10px] text-muted hover:text-accent opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          ▶
+        </button>
+      )}
+    </div>
+  );
+}
+
+function MilestoneSection({ milestone, projectId }) {
   const toggleMilestone = useMutation(api.milestones.toggle);
+  const createTask = useMutation(api.tasks.create);
   const deleteMilestone = useMutation(api.milestones.deleteMilestone);
   const [expanded, setExpanded] = useState(!milestone.done);
   const [adding, setAdding] = useState(false);
@@ -19,53 +73,28 @@ function MilestoneSection({ milestone, projectId }) {
 
   function handleAddTask() {
     if (!newTitle.trim()) return;
-    createTask({
-      milestoneId: milestone._id,
-      projectId,
-      title: newTitle.trim(),
-      order: tasks.length,
-    });
+    createTask({ milestoneId: milestone._id, projectId, title: newTitle.trim(), order: tasks.length });
     setNewTitle("");
     setAdding(false);
   }
 
   return (
-    <div className="border border-border mb-3">
-      <div
-        className="flex items-center gap-3 p-3 cursor-pointer hover:bg-card/50"
-        onClick={() => setExpanded(!expanded)}
-      >
+    <div className="border border-border mb-2">
+      <div className="flex items-center gap-3 p-3 cursor-pointer hover:bg-card/50" onClick={() => setExpanded(!expanded)}>
         <span className="text-muted text-xs">{expanded ? "▼" : "▶"}</span>
         {tasks.length === 0 && (
-          <Checkbox
-            checked={milestone.done}
-            onChange={() => toggleMilestone({ id: milestone._id })}
-          />
+          <Checkbox checked={milestone.done} onChange={() => toggleMilestone({ id: milestone._id })} />
         )}
         <span className={`flex-1 text-sm ${milestone.done ? "line-through text-muted" : "text-text"}`}>
           {milestone.title}
         </span>
-        {tasks.length > 0 && (
-          <span className="font-mono text-xs text-muted">
-            {doneCount}/{tasks.length}
-          </span>
-        )}
+        {tasks.length > 0 && <span className="font-mono text-xs text-muted">{doneCount}/{tasks.length}</span>}
       </div>
       {expanded && (
         <div className="px-3 pb-3">
-          {tasks.map((task) => (
-            <div key={task._id} className="flex items-center gap-3 py-1.5 pl-6">
-              <Checkbox
-                checked={task.done}
-                onChange={() => toggleTask({ id: task._id })}
-              />
-              <span className={`text-sm ${task.done ? "line-through text-muted" : ""}`}>
-                {task.title}
-              </span>
-            </div>
-          ))}
+          {tasks.map((task) => <TaskRow key={task._id} task={task} projectId={projectId} />)}
           {adding ? (
-            <div className="pl-6 mt-2 flex gap-2">
+            <div className="pl-6 mt-2">
               <input
                 type="text"
                 value={newTitle}
@@ -75,26 +104,18 @@ function MilestoneSection({ milestone, projectId }) {
                   if (e.key === "Escape") { setAdding(false); setNewTitle(""); }
                 }}
                 placeholder="Task title"
-                className="flex-1 bg-transparent border-b border-border text-sm text-text outline-none py-1"
+                className="w-full bg-transparent border-b border-border text-sm text-text outline-none py-1"
                 autoFocus
               />
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={() => setAdding(true)}
-              className="text-sm text-muted hover:text-accent pl-6 mt-2"
-            >
+            <button type="button" onClick={() => setAdding(true)} className="text-sm text-muted hover:text-accent pl-6 mt-2">
               + Add task
             </button>
           )}
           <button
             type="button"
-            onClick={() => {
-              if (confirm("Delete this milestone and all its tasks?")) {
-                deleteMilestone({ id: milestone._id });
-              }
-            }}
+            onClick={() => { if (confirm("Delete this milestone and all its tasks?")) deleteMilestone({ id: milestone._id }); }}
             className="text-xs text-muted hover:text-danger pl-6 mt-2 block"
           >
             Delete milestone
@@ -105,55 +126,94 @@ function MilestoneSection({ milestone, projectId }) {
   );
 }
 
+function PhaseSection({ phase, milestones, projectId }) {
+  const [expanded, setExpanded] = useState(!phase.done);
+  const phaseMilestones = milestones.filter((m) => m.phaseId === phase._id);
+  const status = phase.done ? "✅ Complete" : phaseMilestones.some((m) => m.tasks?.some((t) => t.done)) ? "🔄 In progress" : "⬜ Pending";
+
+  return (
+    <div className="mb-4">
+      <div className="flex items-center gap-2 cursor-pointer py-2" onClick={() => setExpanded(!expanded)}>
+        <span className="text-muted text-xs">{expanded ? "▼" : "▶"}</span>
+        <span className={`text-sm font-semibold flex-1 ${phase.done ? "text-muted" : "text-text"}`}>
+          {phase.title}
+        </span>
+        <span className="text-xs text-muted">{status}</span>
+      </div>
+      {expanded && phaseMilestones.map((m) => (
+        <MilestoneSection key={m._id} milestone={m} projectId={projectId} />
+      ))}
+    </div>
+  );
+}
+
+function NotesLog({ projectId, noteLogs }) {
+  const addEntry = useMutation(api.noteLogs.addEntry);
+  const [note, setNote] = useState("");
+
+  return (
+    <div className="mb-6">
+      <div className="text-[11px] text-muted uppercase tracking-wide mb-3">Notes</div>
+      {noteLogs.map((entry) => (
+        <div key={entry._id} className="mb-3 pl-3 border-l border-border">
+          <div className="text-xs text-muted mb-1 font-mono">{entry.date}</div>
+          <div className="text-sm text-text whitespace-pre-wrap">{entry.content}</div>
+        </div>
+      ))}
+      <div className="flex gap-2 mt-2">
+        <input
+          type="text"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && note.trim()) {
+              addEntry({ projectId, content: note.trim() });
+              setNote("");
+            }
+          }}
+          placeholder="Add note for today..."
+          className="flex-1 bg-card border border-border px-3 py-2 text-sm text-text outline-none"
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function ProjectDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const project = useQuery(api.projects.get, { id });
-  const milestones = useQuery(api.milestones.listByProject, { projectId: id });
   const updateNextAction = useMutation(api.projects.updateNextAction);
-  const updateNotes = useMutation(api.projects.updateNotes);
   const parkProject = useMutation(api.projects.park);
   const createMilestone = useMutation(api.milestones.create);
+  const createPhase = useMutation(api.phases.create);
+  const logTime = useMutation(api.timeLogs.log);
 
   const [addingMilestone, setAddingMilestone] = useState(false);
   const [newMilestoneTitle, setNewMilestoneTitle] = useState("");
-  const [notes, setNotes] = useState(null);
+  const [addingPhase, setAddingPhase] = useState(false);
+  const [newPhaseTitle, setNewPhaseTitle] = useState("");
+  const [logMinutes, setLogMinutes] = useState("");
+  const [logNote, setLogNote] = useState("");
 
-  if (project === undefined || milestones === undefined) {
-    return <div className="text-muted p-8">Loading...</div>;
-  }
-  if (!project) {
-    return <div className="text-muted p-8">Project not found.</div>;
-  }
+  if (project === undefined) return <div className="text-muted p-8">Loading...</div>;
+  if (!project) return <div className="text-muted p-8">Project not found.</div>;
 
-  const currentNotes = notes ?? project.notes ?? "";
-
-  const tierColors = {
-    critical: "bg-accent text-bg",
-    high: "bg-border text-text",
-    responsibility: "bg-border text-text",
-  };
+  const tierColor = TIER_COLORS[project.tier] || "#6B6B6B";
+  const hasPhases = project.phases && project.phases.length > 0;
+  const orphanMilestones = (project.milestones || []).filter((m) => !m.phaseId);
+  const today = new Date().toISOString().split("T")[0];
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={() => navigate(-1)}
-        className="text-sm text-muted hover:text-text mb-4"
-      >
-        ← Back
-      </button>
+      <button type="button" onClick={() => navigate(-1)} className="text-sm text-muted hover:text-text mb-4">← Back</button>
 
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-text mb-2">{project.name}</h1>
         <div className="flex gap-2 items-center flex-wrap">
-          <span className={`text-xs px-2 py-0.5 ${tierColors[project.tier] || "bg-border text-text"}`}>
-            {project.tier}
-          </span>
+          <span className="text-xs px-2 py-0.5 text-bg" style={{ backgroundColor: tierColor }}>{project.tier}</span>
           <span className="text-xs text-muted">{project.category}</span>
-          {project.deadline && (
-            <span className="text-xs font-mono text-muted">Due {project.deadline}</span>
-          )}
+          {project.deadline && <span className="text-xs font-mono text-muted">Due {project.deadline}</span>}
         </div>
       </div>
 
@@ -168,10 +228,18 @@ export default function ProjectDetail() {
       </div>
 
       <div className="mb-6">
-        <div className="text-[11px] text-muted uppercase tracking-wide mb-3">Milestones & Tasks</div>
-        {milestones.map((m) => (
+        <div className="text-[11px] text-muted uppercase tracking-wide mb-3">
+          {hasPhases ? "Phases & Milestones" : "Milestones & Tasks"}
+        </div>
+
+        {hasPhases && project.phases.map((phase) => (
+          <PhaseSection key={phase._id} phase={phase} milestones={project.milestones} projectId={project._id} />
+        ))}
+
+        {orphanMilestones.map((m) => (
           <MilestoneSection key={m._id} milestone={m} projectId={project._id} />
         ))}
+
         {addingMilestone ? (
           <div className="flex gap-2 mt-2">
             <input
@@ -180,11 +248,7 @@ export default function ProjectDetail() {
               onChange={(e) => setNewMilestoneTitle(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && newMilestoneTitle.trim()) {
-                  createMilestone({
-                    projectId: project._id,
-                    title: newMilestoneTitle.trim(),
-                    order: milestones.length,
-                  });
+                  createMilestone({ projectId: project._id, title: newMilestoneTitle.trim(), order: (project.milestones || []).length });
                   setNewMilestoneTitle("");
                   setAddingMilestone(false);
                 }
@@ -196,40 +260,63 @@ export default function ProjectDetail() {
             />
           </div>
         ) : (
-          <button
-            type="button"
-            onClick={() => setAddingMilestone(true)}
-            className="text-sm text-muted hover:text-accent mt-2"
-          >
-            + Add milestone
-          </button>
+          <div className="flex gap-4 mt-2">
+            <button type="button" onClick={() => setAddingMilestone(true)} className="text-sm text-muted hover:text-accent">+ Add milestone</button>
+            {!hasPhases && !addingPhase && (
+              <button type="button" onClick={() => setAddingPhase(true)} className="text-sm text-muted hover:text-accent">+ Add phase</button>
+            )}
+          </div>
+        )}
+
+        {hasPhases && !addingPhase && (
+          <button type="button" onClick={() => setAddingPhase(true)} className="text-sm text-muted hover:text-accent mt-2">+ Add phase</button>
+        )}
+
+        {addingPhase && (
+          <div className="flex gap-2 mt-2">
+            <input
+              type="text"
+              value={newPhaseTitle}
+              onChange={(e) => setNewPhaseTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && newPhaseTitle.trim()) {
+                  createPhase({ projectId: project._id, title: newPhaseTitle.trim(), order: (project.phases || []).length });
+                  setNewPhaseTitle("");
+                  setAddingPhase(false);
+                }
+                if (e.key === "Escape") { setAddingPhase(false); setNewPhaseTitle(""); }
+              }}
+              placeholder="Phase title"
+              className="flex-1 bg-transparent border-b border-border text-sm text-text outline-none py-1"
+              autoFocus
+            />
+          </div>
         )}
       </div>
 
       <div className="mb-6">
-        <div className="text-[11px] text-muted uppercase tracking-wide mb-2">Notes</div>
-        <textarea
-          value={currentNotes}
-          onChange={(e) => setNotes(e.target.value)}
-          onBlur={() => {
-            if (currentNotes !== (project.notes ?? "")) {
-              updateNotes({ id: project._id, notes: currentNotes });
-            }
-          }}
-          placeholder="Add notes..."
-          rows={4}
-          className="w-full bg-card border border-border p-3 text-sm text-text outline-none resize-y"
-        />
+        <div className="text-[11px] text-muted uppercase tracking-wide mb-2">Log time</div>
+        <div className="flex gap-2 items-center">
+          <input type="number" value={logMinutes} onChange={(e) => setLogMinutes(e.target.value)}
+            placeholder="Minutes" className="bg-card border border-border px-3 py-2 text-sm text-text outline-none w-24" />
+          <input type="text" value={logNote} onChange={(e) => setLogNote(e.target.value)}
+            placeholder="Note (optional)" className="bg-card border border-border px-3 py-2 text-sm text-text outline-none flex-1" />
+          <button type="button" onClick={() => {
+            if (logMinutes) { logTime({ projectId: project._id, minutes: parseInt(logMinutes), date: today, note: logNote || undefined }); setLogMinutes(""); setLogNote(""); }
+          }} className="px-4 py-2 bg-accent text-bg text-sm font-medium">Log</button>
+        </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => {
-          parkProject({ id: project._id });
-          navigate("/");
-        }}
-        className="text-sm text-muted hover:text-danger border border-border px-4 py-2"
-      >
+      <NotesLog projectId={project._id} noteLogs={project.noteLogs || []} />
+
+      {project.originIdeaId && (
+        <div className="mb-6 text-sm text-muted">
+          Origin: promoted from idea
+        </div>
+      )}
+
+      <button type="button" onClick={() => { parkProject({ id: project._id }); navigate("/"); }}
+        className="text-sm text-muted hover:text-danger border border-border px-4 py-2">
         Park project
       </button>
     </div>

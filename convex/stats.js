@@ -1,23 +1,73 @@
 import { query } from "./_generated/server";
 
+function todayStr() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function weekStartStr() {
+  const now = new Date();
+  const start = new Date(now);
+  start.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  start.setHours(0, 0, 0, 0);
+  return start.toISOString().split("T")[0];
+}
+
+export const getDailyPulse = query({
+  handler: async (ctx) => {
+    const today = todayStr();
+    const tasks = await ctx.db.query("tasks").collect();
+    const tasksDoneToday = tasks.filter(
+      (t) => t.done && t.doneAt && new Date(t.doneAt).toISOString().split("T")[0] === today
+    );
+
+    const timeLogs = await ctx.db.query("timeLogs").collect();
+    const todayLogs = timeLogs.filter((l) => l.date === today);
+    const minutesLoggedToday = todayLogs.reduce((s, l) => s + l.minutes, 0);
+
+    const projects = await ctx.db.query("projects").collect();
+    const projectMap = {};
+    for (const p of projects) projectMap[p._id] = p;
+
+    const projectBreakdown = {};
+    for (const t of tasksDoneToday) {
+      const name = projectMap[t.projectId]?.name || "Unknown";
+      projectBreakdown[name] = (projectBreakdown[name] || 0) + 1;
+    }
+
+    const scheduledToday = tasks.filter((t) => t.scheduledDate === today && !t.done);
+
+    const deenLog = await ctx.db
+      .query("deenLogs")
+      .withIndex("by_date", (q) => q.eq("date", today))
+      .first();
+    const healthLog = await ctx.db
+      .query("healthLogs")
+      .withIndex("by_date", (q) => q.eq("date", today))
+      .first();
+
+    return {
+      tasksDoneToday: tasksDoneToday.length,
+      minutesLoggedToday,
+      projectBreakdown,
+      scheduledRemaining: scheduledToday.length,
+      quranDone: deenLog?.quranRead || false,
+      gymDone: healthLog?.gymSession || false,
+    };
+  },
+});
+
 export const getWeeklyPerformance = query({
   handler: async (ctx) => {
-    const now = new Date();
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay() + 1);
-    startOfWeek.setHours(0, 0, 0, 0);
-    const weekStart = startOfWeek.getTime();
-
+    const ws = weekStartStr();
+    const wsTime = new Date(ws + "T00:00:00").getTime();
     const tasks = await ctx.db.query("tasks").collect();
     const completedThisWeek = tasks.filter(
-      (t) => t.done && t.doneAt && t.doneAt >= weekStart
+      (t) => t.done && t.doneAt && t.doneAt >= wsTime
     );
 
     const projects = await ctx.db.query("projects").collect();
     const projectMap = {};
-    for (const p of projects) {
-      projectMap[p._id] = p.name;
-    }
+    for (const p of projects) projectMap[p._id] = p.name;
 
     const byProject = {};
     for (const task of completedThisWeek) {
@@ -25,9 +75,26 @@ export const getWeeklyPerformance = query({
       byProject[name] = (byProject[name] || 0) + 1;
     }
 
+    const timeLogs = await ctx.db.query("timeLogs").collect();
+    const weekLogs = timeLogs.filter((l) => l.date >= ws);
+    const minutesByProject = {};
+    for (const log of weekLogs) {
+      const name = projectMap[log.projectId] || "Unknown";
+      minutesByProject[name] = (minutesByProject[name] || 0) + log.minutes;
+    }
+
+    const contextBreakdown = { deep_work: 0, quick: 0, errand: 0 };
+    for (const t of completedThisWeek) {
+      if (t.context && contextBreakdown[t.context] !== undefined) {
+        contextBreakdown[t.context]++;
+      }
+    }
+
     return {
       totalCompleted: completedThisWeek.length,
       byProject,
+      minutesByProject,
+      contextBreakdown,
     };
   },
 });
@@ -57,11 +124,19 @@ export const getDashboardAlerts = query({
       .query("projects")
       .filter((q) => q.neq(q.field("tier"), "parked"))
       .collect();
-    const today = new Date().toISOString().split("T")[0];
+    const today = todayStr();
     const missingNextAction = projects.filter((p) => !p.nextAction.trim());
-    const overdue = projects.filter(
-      (p) => p.deadline && p.deadline < today
-    );
-    return { missingNextAction, overdue };
+    const overdue = projects.filter((p) => p.deadline && p.deadline < today);
+
+    const lastReview = await ctx.db.query("weeklyReviews").collect();
+    let daysSinceReview = null;
+    if (lastReview.length > 0) {
+      lastReview.sort((a, b) => b.completedAt - a.completedAt);
+      daysSinceReview = Math.floor(
+        (Date.now() - lastReview[0].completedAt) / (1000 * 60 * 60 * 24)
+      );
+    }
+
+    return { missingNextAction, overdue, daysSinceReview };
   },
 });

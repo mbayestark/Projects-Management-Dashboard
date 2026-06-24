@@ -36,10 +36,9 @@ export const update = mutation({
   },
   handler: async (ctx, { id, ...fields }) => {
     const patch = { updatedAt: Date.now() };
-    if (fields.title !== undefined) patch.title = fields.title;
-    if (fields.body !== undefined) patch.body = fields.body;
-    if (fields.category !== undefined) patch.category = fields.category;
-    if (fields.status !== undefined) patch.status = fields.status;
+    for (const [k, val] of Object.entries(fields)) {
+      if (val !== undefined) patch[k] = val;
+    }
     await ctx.db.patch(id, patch);
   },
 });
@@ -59,6 +58,7 @@ export const promoteToProject = mutation({
       tier,
       nextAction: "",
       createdAt: Date.now(),
+      originIdeaId: id,
     });
     await ctx.db.patch(id, {
       status: "promoted",

@@ -1,73 +1,55 @@
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import CalendarHeatmap from "../components/CalendarHeatmap";
+import { todayString } from "../lib/utils";
 
 export default function Deen() {
   const logs = useQuery(api.deen.listLogs, {});
+  const streak = useQuery(api.deen.getStreak);
+  const logDeen = useMutation(api.deen.log);
 
-  if (logs === undefined) return <div className="text-muted p-8">Loading...</div>;
+  if (logs === undefined || !streak) return <div className="text-muted p-8">Loading...</div>;
 
   const readDates = new Set(logs.filter((l) => l.quranRead).map((l) => l.date));
+  const graceDates = new Set(logs.filter((l) => l.graceDayUsed).map((l) => l.date));
+  const allActiveDates = new Set([...readDates, ...graceDates]);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  let currentStreak = 0;
-  let d = new Date(today);
-  while (true) {
-    const dateStr = d.toISOString().split("T")[0];
-    if (readDates.has(dateStr)) {
-      currentStreak++;
-      d.setDate(d.getDate() - 1);
-    } else {
-      break;
-    }
-  }
-
-  let longestStreak = 0;
-  let tempStreak = 0;
-  const sorted = [...readDates].sort();
-  for (let i = 0; i < sorted.length; i++) {
-    if (i === 0) {
-      tempStreak = 1;
-    } else {
-      const prev = new Date(sorted[i - 1] + "T00:00:00");
-      const curr = new Date(sorted[i] + "T00:00:00");
-      const diff = (curr - prev) / (1000 * 60 * 60 * 24);
-      tempStreak = diff === 1 ? tempStreak + 1 : 1;
-    }
-    longestStreak = Math.max(longestStreak, tempStreak);
-  }
-
-  const month = today.getMonth();
-  const year = today.getFullYear();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  let thisMonth = 0;
-  for (let i = 1; i <= daysInMonth; i++) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(i).padStart(2, "0")}`;
-    if (readDates.has(dateStr)) thisMonth++;
-  }
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split("T")[0];
 
   return (
     <div>
       <h1 className="text-2xl font-semibold text-text mb-6">Deen</h1>
+
       <div className="mb-6">
-        <CalendarHeatmap weeks={16} dateSet={readDates} />
+        <CalendarHeatmap weeks={16} dateSet={allActiveDates} graceDates={graceDates} />
       </div>
-      <div className="flex gap-8 font-mono text-sm flex-wrap">
+
+      <div className="flex gap-8 font-mono text-sm flex-wrap mb-6">
         <div>
           <div className="text-muted text-xs mb-1">Current streak</div>
-          <div className="text-accent text-2xl">{currentStreak} <span className="text-sm text-muted">days</span></div>
+          <div className="text-accent text-2xl">{streak.currentStreak} <span className="text-sm text-muted">days</span></div>
         </div>
         <div>
           <div className="text-muted text-xs mb-1">Longest streak</div>
-          <div className="text-text text-2xl">{longestStreak} <span className="text-sm text-muted">days</span></div>
+          <div className="text-text text-2xl">{streak.longestStreak} <span className="text-sm text-muted">days</span></div>
         </div>
         <div>
           <div className="text-muted text-xs mb-1">This month</div>
-          <div className="text-text text-2xl">{thisMonth} <span className="text-sm text-muted">/ {daysInMonth}</span></div>
+          <div className="text-text text-2xl">{streak.thisMonth} <span className="text-sm text-muted">/ {streak.daysInMonth}</span></div>
         </div>
       </div>
+
+      {streak.graceAvailable && (
+        <button
+          type="button"
+          onClick={() => logDeen({ date: yesterdayStr, quranRead: false, graceDayUsed: true })}
+          className="px-4 py-2 border border-accent text-accent text-sm font-medium hover:bg-accent/10"
+        >
+          Use grace day for yesterday
+        </button>
+      )}
     </div>
   );
 }
