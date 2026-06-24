@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "predeploy": "VITE_CONVEX_URL=https://small-snake-276.convex.cloud npm run build",
+    "predeploy": "VITE_CONVEX_URL=https://judicious-trout-397.convex.cloud npm run build",
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
