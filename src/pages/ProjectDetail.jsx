@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Checkbox from "../components/Checkbox";
 import InlineEdit from "../components/InlineEdit";
 
@@ -36,6 +36,12 @@ function TaskRow({ task, projectId }) {
   const [schedDate, setSchedDate] = useState(task.scheduledDate || "");
   const [schedStart, setSchedStart] = useState(task.scheduledStart || "");
   const [schedDuration, setSchedDuration] = useState(task.scheduledDuration || "");
+
+  useEffect(() => {
+    setSchedDate(task.scheduledDate || "");
+    setSchedStart(task.scheduledStart || "");
+    setSchedDuration(task.scheduledDuration || "");
+  }, [task.scheduledDate, task.scheduledStart, task.scheduledDuration]);
 
   function cycleContext() {
     const idx = CONTEXTS.indexOf(task.context || null);
