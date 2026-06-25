@@ -29,7 +29,10 @@ export default function Deen() {
       <div className="flex gap-8 font-mono text-sm flex-wrap mb-6">
         <div>
           <div className="text-muted text-xs mb-1">Current streak</div>
-          <div className="text-accent text-2xl">{streak.currentStreak} <span className="text-sm text-muted">days</span></div>
+          <div className={`text-2xl ${streak.streakWarning ? "text-[#E8A838]" : "text-accent"}`}>
+            {streak.currentStreak} <span className="text-sm text-muted">days</span>
+            {streak.streakWarning && <span className="text-sm text-[#E8A838] ml-2">— miss tomorrow and it resets</span>}
+          </div>
         </div>
         <div>
           <div className="text-muted text-xs mb-1">Longest streak</div>

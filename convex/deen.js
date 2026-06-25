@@ -21,35 +21,46 @@ export const getStreak = query({
     today.setHours(0, 0, 0, 0);
 
     let currentStreak = 0;
+    let consecutiveMisses = 0;
     const d = new Date(today);
     while (true) {
       const dateStr = d.toISOString().split("T")[0];
       const entry = logMap[dateStr];
       if (entry?.quranRead || entry?.graceDayUsed) {
         currentStreak++;
+        consecutiveMisses = 0;
         d.setDate(d.getDate() - 1);
       } else {
-        break;
+        consecutiveMisses++;
+        if (consecutiveMisses >= 2) break;
+        d.setDate(d.getDate() - 1);
       }
     }
 
     let longestStreak = 0;
     let tempStreak = 0;
-    const sorted = Object.keys(logMap).sort();
-    for (let i = 0; i < sorted.length; i++) {
-      const entry = logMap[sorted[i]];
-      if (i > 0) {
-        const prev = new Date(sorted[i - 1] + "T00:00:00");
-        const curr = new Date(sorted[i] + "T00:00:00");
-        const gap = (curr - prev) / (1000 * 60 * 60 * 24);
-        if (gap > 1) tempStreak = 0;
+    let tempMisses = 0;
+    const firstDate = Object.keys(logMap).sort()[0];
+    if (firstDate) {
+      const start = new Date(firstDate + "T00:00:00");
+      const end = new Date(today);
+      const cursor = new Date(start);
+      while (cursor <= end) {
+        const dateStr = cursor.toISOString().split("T")[0];
+        const entry = logMap[dateStr];
+        if (entry?.quranRead || entry?.graceDayUsed) {
+          tempStreak++;
+          tempMisses = 0;
+        } else {
+          tempMisses++;
+          if (tempMisses >= 2) {
+            tempStreak = 0;
+            tempMisses = 0;
+          }
+        }
+        longestStreak = Math.max(longestStreak, tempStreak);
+        cursor.setDate(cursor.getDate() + 1);
       }
-      if (entry.quranRead || entry.graceDayUsed) {
-        tempStreak++;
-      } else {
-        tempStreak = 0;
-      }
-      longestStreak = Math.max(longestStreak, tempStreak);
     }
 
     const month = today.getMonth();
@@ -76,12 +87,18 @@ export const getStreak = query({
       if (entry?.graceDayUsed) { graceUsedRecently = true; break; }
     }
 
+    const todayStr = today.toISOString().split("T")[0];
+    const todayEntry = logMap[todayStr];
+    const todayDone = todayEntry?.quranRead || todayEntry?.graceDayUsed;
+    const streakWarning = !todayDone && consecutiveMisses === 1;
+
     return {
       currentStreak,
       longestStreak,
       thisMonth,
       daysInMonth,
       graceAvailable: yesterdayMissed && !graceUsedRecently,
+      streakWarning,
     };
   },
 });
