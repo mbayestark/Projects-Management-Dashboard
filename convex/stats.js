@@ -111,11 +111,15 @@ export const getWeeklyHistory = query({
   handler: async (ctx) => {
     const tasks = await ctx.db.query("tasks").collect();
     const completed = tasks.filter((t) => t.done && t.doneAt);
-    const now = Date.now();
+    const now = new Date();
+    const currentMonday = new Date(now);
+    currentMonday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    currentMonday.setHours(0, 0, 0, 0);
+
     const weeks = [];
     for (let i = 7; i >= 0; i--) {
-      const weekEnd = new Date(now - i * 7 * 24 * 60 * 60 * 1000);
-      const weekStart = new Date(weekEnd.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const weekStart = new Date(currentMonday.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+      const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
       const count = completed.filter(
         (t) => t.doneAt >= weekStart.getTime() && t.doneAt < weekEnd.getTime()
       ).length;

@@ -18,10 +18,12 @@ export default function Performance() {
   const gymLogs = (healthLogs || []).filter((l) => l.gymSession);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const currentMonday = new Date(today);
+  currentMonday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
   const gymByWeek = [];
   for (let i = 3; i >= 0; i--) {
-    const weekEnd = new Date(today.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-    const weekStart = new Date(weekEnd.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const weekStart = new Date(currentMonday.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+    const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
     const count = gymLogs.filter((l) => {
       const ld = new Date(l.date + "T00:00:00");
       return ld >= weekStart && ld < weekEnd;
