@@ -172,11 +172,11 @@ function AthleticSection() {
   if (!tests) return null;
 
   const fields = [
-    { key: "spiderDrill", label: "Spider (s)" },
-    { key: "run2400m", label: "2.4km (s)" },
-    { key: "lateralShuffle", label: "Lateral (s)" },
-    { key: "verticalJump", label: "Vert (cm)" },
-    { key: "plankHold", label: "Plank (s)" },
+    { key: "spiderDrill", label: "Spider (s)", higherIsBetter: false },
+    { key: "run2400m", label: "2.4km (s)", higherIsBetter: false },
+    { key: "lateralShuffle", label: "Lateral (s)", higherIsBetter: false },
+    { key: "verticalJump", label: "Vert (cm)", higherIsBetter: true },
+    { key: "plankHold", label: "Plank (s)", higherIsBetter: true },
   ];
 
   function getDelta(idx, key) {
@@ -203,11 +203,13 @@ function AthleticSection() {
                   {fields.map((f) => {
                     const val = test[f.key];
                     const d = getDelta(i, f.key);
+                    const isGood = d !== null && (f.higherIsBetter ? d > 0 : d < 0);
+                    const isBad = d !== null && (f.higherIsBetter ? d < 0 : d > 0);
                     return (
                       <td key={f.key} className="py-2 pr-4 font-mono text-xs">
                         {val ?? "—"}
                         {d !== null && (
-                          <span className={`ml-1 ${d < 0 ? "text-green-500" : d > 0 ? "text-danger" : "text-muted"}`}>
+                          <span className={`ml-1 ${isGood ? "text-green-500" : isBad ? "text-danger" : "text-muted"}`}>
                             {d > 0 ? "↑" : "↓"}{Math.abs(d).toFixed(1)}
                           </span>
                         )}

@@ -36,8 +36,14 @@ export const getStreak = query({
     let longestStreak = 0;
     let tempStreak = 0;
     const sorted = Object.keys(logMap).sort();
-    for (const date of sorted) {
-      const entry = logMap[date];
+    for (let i = 0; i < sorted.length; i++) {
+      const entry = logMap[sorted[i]];
+      if (i > 0) {
+        const prev = new Date(sorted[i - 1] + "T00:00:00");
+        const curr = new Date(sorted[i] + "T00:00:00");
+        const gap = (curr - prev) / (1000 * 60 * 60 * 24);
+        if (gap > 1) tempStreak = 0;
+      }
       if (entry.quranRead || entry.graceDayUsed) {
         tempStreak++;
       } else {

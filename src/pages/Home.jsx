@@ -89,7 +89,7 @@ function TodayBlocks() {
           <div key={task._id} className="flex items-center gap-3 py-2 border-b border-border">
             <span className="font-mono text-xs text-muted w-16">{task.scheduledStart || "—"}</span>
             <span className="text-sm text-text flex-1">{task.title}</span>
-            <span className="text-xs text-muted">{task.projectName}{task.scheduledDuration ? ` · ${task.scheduledDuration >= 60 ? `${task.scheduledDuration / 60}h` : `${task.scheduledDuration}m`}` : ""}</span>
+            <span className="text-xs text-muted">{task.projectName}{task.scheduledDuration ? ` · ${Math.floor(task.scheduledDuration / 60) > 0 ? `${Math.floor(task.scheduledDuration / 60)}h${task.scheduledDuration % 60 ? ` ${task.scheduledDuration % 60}m` : ""}` : `${task.scheduledDuration}m`}` : ""}</span>
             {!task.done && (
               <button
                 type="button"

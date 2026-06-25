@@ -27,7 +27,7 @@ export function getWeekDates(weeksBack) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const startDay = new Date(today);
-  startDay.setDate(today.getDate() - today.getDay() - (weeksBack - 1) * 7 + 1);
+  startDay.setDate(today.getDate() - ((today.getDay() + 6) % 7) - (weeksBack - 1) * 7);
   for (let i = 0; i < weeksBack * 7; i++) {
     const d = new Date(startDay);
     d.setDate(startDay.getDate() + i);

@@ -44,8 +44,8 @@ export default function Review() {
         <div className="text-[11px] text-muted uppercase tracking-widest mb-4">Step 1 — Last week snapshot</div>
         <div className="border border-border p-4 mb-6">
           <div className="font-mono text-lg text-accent mb-3">{weeklyPerf.totalCompleted} tasks completed</div>
-          {Object.entries(weeklyPerf.byProject).map(([name, count]) => (
-            <div key={name} className="text-sm text-muted mb-1">{name}: {count} tasks</div>
+          {weeklyPerf.byProject.map(({ name, tasks }) => (
+            <div key={name} className="text-sm text-muted mb-1">{name}: {tasks} tasks</div>
           ))}
           {streak && <div className="text-sm text-muted mt-3">Quran streak: {streak.currentStreak} days</div>}
         </div>

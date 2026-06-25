@@ -6,7 +6,7 @@ import Checkbox from "../components/Checkbox";
 import InlineEdit from "../components/InlineEdit";
 
 const TIER_COLORS = { critical: "#E84038", high: "#E8A838", responsibility: "#7B61FF" };
-const CONTEXTS = [null, "deep_work", "quick", "errand"];
+const CONTEXTS = [undefined, "deep_work", "quick", "errand"];
 const CONTEXT_LABELS = { deep_work: "deep", quick: "quick", errand: "errand" };
 
 function ContextBadge({ context, onCycle }) {
@@ -133,7 +133,9 @@ function MilestoneSection({ milestone, projectId }) {
       <div className="flex items-center gap-3 p-3 cursor-pointer hover:bg-card/50" onClick={() => setExpanded(!expanded)}>
         <span className="text-muted text-xs">{expanded ? "▼" : "▶"}</span>
         {tasks.length === 0 && (
-          <Checkbox checked={milestone.done} onChange={() => toggleMilestone({ id: milestone._id })} />
+          <span onClick={(e) => e.stopPropagation()}>
+            <Checkbox checked={milestone.done} onChange={() => toggleMilestone({ id: milestone._id })} />
+          </span>
         )}
         <span className={`flex-1 text-sm ${milestone.done ? "line-through text-muted" : "text-text"}`}>
           {milestone.title}

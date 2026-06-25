@@ -77,7 +77,7 @@ export default function Layout() {
 
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-bg border-t border-border flex justify-around py-2 z-50">
         {MAIN_NAV.map((n) => (
-          <NavItem key={n.to} {...n} />
+          <NavItem key={n.to} {...n} onClick={() => setMoreTray(false)} />
         ))}
         <button
           type="button"
