@@ -89,13 +89,25 @@ function DayView({ date }) {
 
       {unscheduledToday.length > 0 && (
         <div>
-          <div className="text-[11px] text-muted uppercase tracking-widest mb-2">Unscheduled today</div>
+          <div className="text-[11px] text-muted uppercase tracking-widest mb-2">No time set</div>
           {unscheduledToday.map((t) => (
-            <div key={t._id} className="flex items-center gap-2 py-1.5 text-sm">
-              <span className="text-muted">·</span>
+            <div key={t._id} className="flex items-center gap-2 py-2 border-b border-border text-sm">
+              <span
+                className="w-2 h-2 rounded-full shrink-0"
+                style={{ backgroundColor: TIER_COLORS[t.projectTier] || "#6B6B6B" }}
+              />
               <span className="text-text flex-1">{t.title}</span>
               <span className="text-xs text-muted">{t.projectName}</span>
               {t.context && <span className="text-[10px] text-muted">{t.context}</span>}
+              {!t.done && (
+                <button
+                  type="button"
+                  onClick={() => startTimer({ taskId: t._id, projectId: t.projectId })}
+                  className="text-xs text-accent"
+                >
+                  ▶
+                </button>
+              )}
             </div>
           ))}
         </div>
