@@ -30,7 +30,12 @@ function TaskRow({ task, projectId }) {
   const toggleTask = useMutation(api.tasks.toggle);
   const updateContext = useMutation(api.tasks.updateContext);
   const updateTitle = useMutation(api.tasks.updateTitle);
+  const updateSchedule = useMutation(api.tasks.updateSchedule);
   const startTimer = useMutation(api.timer.start);
+  const [showSchedule, setShowSchedule] = useState(false);
+  const [schedDate, setSchedDate] = useState(task.scheduledDate || "");
+  const [schedStart, setSchedStart] = useState(task.scheduledStart || "");
+  const [schedDuration, setSchedDuration] = useState(task.scheduledDuration || "");
 
   function cycleContext() {
     const idx = CONTEXTS.indexOf(task.context || null);
@@ -38,23 +43,61 @@ function TaskRow({ task, projectId }) {
     updateContext({ id: task._id, context: next });
   }
 
+  function saveSchedule() {
+    updateSchedule({
+      id: task._id,
+      scheduledDate: schedDate || undefined,
+      scheduledStart: schedStart || undefined,
+      scheduledDuration: schedDuration ? parseInt(schedDuration) : undefined,
+    });
+    setShowSchedule(false);
+  }
+
   return (
-    <div className="flex items-center gap-2 py-1.5 pl-6 group">
-      <Checkbox checked={task.done} onChange={() => toggleTask({ id: task._id })} />
-      <InlineEdit
-        value={task.title}
-        onSave={(val) => updateTitle({ id: task._id, title: val })}
-        className={`text-sm flex-1 ${task.done ? "line-through text-muted" : ""}`}
-      />
-      <ContextBadge context={task.context} onCycle={cycleContext} />
-      {!task.done && (
+    <div className="pl-6">
+      <div className="flex items-center gap-2 py-1.5 group">
+        <Checkbox checked={task.done} onChange={() => toggleTask({ id: task._id })} />
+        <InlineEdit
+          value={task.title}
+          onSave={(val) => updateTitle({ id: task._id, title: val })}
+          className={`text-sm flex-1 ${task.done ? "line-through text-muted" : ""}`}
+        />
+        <ContextBadge context={task.context} onCycle={cycleContext} />
         <button
           type="button"
-          onClick={() => startTimer({ taskId: task._id, projectId })}
-          className="text-[10px] text-muted hover:text-accent opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={() => setShowSchedule(!showSchedule)}
+          className={`text-[10px] px-1 ${task.scheduledDate ? "text-accent" : "text-muted hover:text-accent opacity-0 group-hover:opacity-100"} transition-opacity`}
+          title="Schedule"
         >
-          ▶
+          {task.scheduledDate ? `📅 ${task.scheduledDate}` : "📅"}
         </button>
+        {!task.done && (
+          <button
+            type="button"
+            onClick={() => startTimer({ taskId: task._id, projectId })}
+            className="text-[10px] text-muted hover:text-accent opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            ▶
+          </button>
+        )}
+      </div>
+      {showSchedule && (
+        <div className="flex items-center gap-2 py-2 pl-6 flex-wrap">
+          <input type="date" value={schedDate} onChange={(e) => setSchedDate(e.target.value)}
+            className="bg-card border border-border px-2 py-1 text-xs text-text outline-none" />
+          <input type="time" value={schedStart} onChange={(e) => setSchedStart(e.target.value)}
+            className="bg-card border border-border px-2 py-1 text-xs text-text outline-none" />
+          <input type="number" value={schedDuration} onChange={(e) => setSchedDuration(e.target.value)}
+            placeholder="min" className="bg-card border border-border px-2 py-1 text-xs text-text outline-none w-16" />
+          <button type="button" onClick={saveSchedule} className="text-xs text-accent hover:underline">Save</button>
+          {task.scheduledDate && (
+            <button type="button" onClick={() => {
+              updateSchedule({ id: task._id });
+              setSchedDate(""); setSchedStart(""); setSchedDuration("");
+              setShowSchedule(false);
+            }} className="text-xs text-muted hover:text-danger">Clear</button>
+          )}
+        </div>
       )}
     </div>
   );
