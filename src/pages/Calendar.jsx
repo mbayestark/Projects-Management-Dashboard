@@ -32,39 +32,53 @@ function DayView({ date }) {
   const tasks = useQuery(api.tasks.listScheduledForDate, { date });
   const startTimer = useMutation(api.timer.start);
 
-  const allTasks = useQuery(api.tasks.listScheduledForDate, { date });
-  const unscheduledToday = (allTasks || []).filter((t) => !t.scheduledStart && !t.done);
-  const scheduled = (tasks || []).filter((t) => t.scheduledStart);
+  const allTasks = tasks || [];
+  const unscheduledToday = allTasks.filter((t) => !t.scheduledStart && !t.done);
+  const scheduled = allTasks.filter((t) => t.scheduledStart);
+
+  let minHour = 7;
+  let maxHour = 21;
+  for (const t of scheduled) {
+    const h = parseInt(t.scheduledStart.split(":")[0], 10);
+    if (h < minHour) minHour = h;
+    if (h > maxHour) maxHour = h;
+  }
 
   const hours = [];
-  for (let h = 7; h <= 21; h++) {
-    const timeStr = `${String(h).padStart(2, "0")}:00`;
-    const task = scheduled.find((t) => t.scheduledStart === timeStr);
-    hours.push({ time: timeStr, task });
+  for (let h = minHour; h <= maxHour; h++) {
+    const hourPrefix = String(h).padStart(2, "0");
+    const matched = scheduled.filter((t) => t.scheduledStart.startsWith(hourPrefix + ":"));
+    hours.push({ time: `${hourPrefix}:00`, tasks: matched });
   }
 
   return (
     <div>
       <div className="mb-4">
-        {hours.map(({ time, task }) => (
+        {hours.map(({ time, tasks: slotTasks }) => (
           <div key={time} className="flex items-stretch border-b border-border min-h-[36px]">
             <span className="font-mono text-xs text-muted w-16 py-2 shrink-0">{time}</span>
-            {task ? (
-              <div
-                className="flex-1 flex items-center gap-2 px-3 py-2"
-                style={{ backgroundColor: (TIER_COLORS[task.projectTier] || "#6B6B6B") + "15" }}
-              >
-                <span className="text-sm text-text flex-1">{task.title}</span>
-                <span className="text-xs text-muted">{task.projectName}</span>
-                {!task.done && (
-                  <button
-                    type="button"
-                    onClick={() => startTimer({ taskId: task._id, projectId: task.projectId })}
-                    className="text-xs text-accent"
+            {slotTasks.length > 0 ? (
+              <div className="flex-1 flex flex-col">
+                {slotTasks.map((task) => (
+                  <div
+                    key={task._id}
+                    className="flex items-center gap-2 px-3 py-2"
+                    style={{ backgroundColor: (TIER_COLORS[task.projectTier] || "#6B6B6B") + "15" }}
                   >
-                    ▶
-                  </button>
-                )}
+                    <span className="font-mono text-[10px] text-muted w-10">{task.scheduledStart}</span>
+                    <span className="text-sm text-text flex-1">{task.title}</span>
+                    <span className="text-xs text-muted">{task.projectName}</span>
+                    {!task.done && (
+                      <button
+                        type="button"
+                        onClick={() => startTimer({ taskId: task._id, projectId: task.projectId })}
+                        className="text-xs text-accent"
+                      >
+                        ▶
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             ) : (
               <div className="flex-1 py-2" />

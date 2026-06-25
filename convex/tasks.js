@@ -121,8 +121,19 @@ export const updateSchedule = mutation({
     scheduledStart: v.optional(v.string()),
     scheduledDuration: v.optional(v.number()),
   },
-  handler: async (ctx, { id, ...fields }) => {
-    await ctx.db.patch(id, fields);
+  handler: async (ctx, { id, scheduledDate, scheduledStart, scheduledDuration }) => {
+    await ctx.db.patch(id, { scheduledDate, scheduledStart, scheduledDuration });
+  },
+});
+
+export const clearSchedule = mutation({
+  args: { id: v.id("tasks") },
+  handler: async (ctx, { id }) => {
+    await ctx.db.patch(id, {
+      scheduledDate: undefined,
+      scheduledStart: undefined,
+      scheduledDuration: undefined,
+    });
   },
 });
 

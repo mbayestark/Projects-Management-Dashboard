@@ -31,6 +31,7 @@ function TaskRow({ task, projectId }) {
   const updateContext = useMutation(api.tasks.updateContext);
   const updateTitle = useMutation(api.tasks.updateTitle);
   const updateSchedule = useMutation(api.tasks.updateSchedule);
+  const clearSchedule = useMutation(api.tasks.clearSchedule);
   const startTimer = useMutation(api.timer.start);
   const [showSchedule, setShowSchedule] = useState(false);
   const [schedDate, setSchedDate] = useState(task.scheduledDate || "");
@@ -98,7 +99,7 @@ function TaskRow({ task, projectId }) {
           <button type="button" onClick={saveSchedule} className="text-xs text-accent hover:underline">Save</button>
           {task.scheduledDate && (
             <button type="button" onClick={() => {
-              updateSchedule({ id: task._id });
+              clearSchedule({ id: task._id });
               setSchedDate(""); setSchedStart(""); setSchedDuration("");
               setShowSchedule(false);
             }} className="text-xs text-muted hover:text-danger">Clear</button>
